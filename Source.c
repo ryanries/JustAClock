@@ -28,7 +28,7 @@ MONITORINFO gMonitorInfo = { sizeof(MONITORINFO) };
 BOOL CALLBACK EnumDisplayProc(HMONITOR hMon, HDC dcMon, RECT* pRcMon, LPARAM Parameter)
 {
 	// Raymond Chen says: "The primary monitor by definition has its upper left corner at (0, 0)."
-	if ((pRcMon->left != 0) && (pRcMon->top != 0))
+	if ((pRcMon->left != 0) & (pRcMon->top != 0))
 	{
 		// We found a secondary monitor!
 		// We need to position our clock window at the bottom right corner of this monitor's taskbar.		
@@ -203,11 +203,11 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 	// I used Spy++ to basically trial-and-error my way into figuring out what the real
 	// "taskbar window" was, so we can set that to be the parent of this clock window we're making.
 
-	HWND TaskbarWindowHandle = FindWindowW(L"Shell_SecondaryTrayWnd", NULL);
+	//HWND TaskbarWindowHandle = FindWindowW(L"Shell_SecondaryTrayWnd", NULL);
 
-	HWND RealTaskbarWindowHandle = FindWindowExW(TaskbarWindowHandle, NULL, L"WorkerW", NULL);
+	//HWND RealTaskbarWindowHandle = FindWindowExW(TaskbarWindowHandle, NULL, L"WorkerW", NULL);
 
-	HWND RealRealTaskbarWindowHandle = FindWindowExW(RealTaskbarWindowHandle, NULL, L"MSTaskListWClass", NULL);
+	//HWND RealRealTaskbarWindowHandle = FindWindowExW(RealTaskbarWindowHandle, NULL, L"MSTaskListWClass", NULL);
 
 
 	ClockWindowHandle = CreateWindowExW(
@@ -219,7 +219,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		CW_USEDEFAULT,
 		CLOCK_WINDOW_WIDTH,
 		100,
-		RealRealTaskbarWindowHandle,
+		NULL,
 		NULL,
 		GetModuleHandleW(NULL),
 		NULL);
@@ -270,11 +270,10 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 		gMonitorInfo.rcWork.bottom,
 		CLOCK_WINDOW_WIDTH, 
 		48, // Height of the taskbar. TODO: Calculate this smartly
-		0);
+		SWP_SHOWWINDOW);
 	
 
-	// Make window visible again.
-	SetWindowLongW(ClockWindowHandle, GWL_STYLE, WS_VISIBLE);
+
 
 	// Message pump must never block or hang or become unresponsive.
 	while (!gShouldExit)
@@ -286,7 +285,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 		Sleep(100);
 
-		RedrawWindow(ClockWindowHandle, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);				
+		RedrawWindow(ClockWindowHandle, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);
+
+		SetWindowPos(ClockWindowHandle, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE);
 	}
 
 Exit:
