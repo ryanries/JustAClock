@@ -103,6 +103,11 @@ LRESULT CALLBACK ClockWindowProc(_In_ HWND WindowHandle, _In_ UINT Message, _In_
 
 			SetBkMode(MemoryDC, TRANSPARENT);
 
+			HBRUSH RedBrush = CreateSolidBrush(RGB(255, 0, 0));
+
+			// Paint the entire memoryDC red, because remember we set red to be transparent.
+			FillRect(MemoryDC, &ClientRect, RedBrush);
+
 			//SetBkColor(MemoryDC, RGB(255, 0, 0));
 
 			HFONT Font = GetStockObject(DEFAULT_GUI_FONT);
@@ -136,6 +141,8 @@ LRESULT CALLBACK ClockWindowProc(_In_ HWND WindowHandle, _In_ UINT Message, _In_
 				0, 
 				0, 
 				SRCCOPY);
+
+			DeleteObject(RedBrush);
 
 			DeleteObject(MemoryBitmap);
 
