@@ -64,33 +64,56 @@ LRESULT CALLBACK ClockWindowProc(_In_ HWND WindowHandle, _In_ UINT Message, _In_
 
 			wchar_t DateTimeString[32] = { 0 };			
 
+			// The size of the entire clock window.
 			RECT ClientRect = { 0 };
+
+			// The size of the bounding rectangle where the text will go,
+			// i.e., padding.
+			RECT TextRect = { 0 };
 
 			PAINTSTRUCT PaintStruct = { 0 };
 
-			HDC Context = BeginPaint(WindowHandle, &PaintStruct);
+			// For double buffering to avoid flicker.
+			HDC MemoryDC = { 0 };
+
+			HBITMAP MemoryBitmap = { 0 };
 
 			GetClientRect(WindowHandle, &ClientRect);
 
-			ClientRect.top += 10;
+			TextRect.top = ClientRect.top + 8;
 
-			ClientRect.right -= 8;
+			TextRect.bottom = ClientRect.bottom;
 
-			SetTextColor(Context, RGB(255, 255, 255));
+			TextRect.left = ClientRect.left;
 
-			SetBkMode(Context, TRANSPARENT);
+			TextRect.right = ClientRect.right - 8;
 
-			HFONT hFont = GetStockObject(DEFAULT_GUI_FONT);
+			HDC Context = BeginPaint(WindowHandle, &PaintStruct);			
+
+			MemoryDC = CreateCompatibleDC(Context);
+
+			MemoryBitmap = CreateCompatibleBitmap(
+				Context, 
+				ClientRect.right - ClientRect.left, 
+				ClientRect.bottom + ClientRect.left);
+
+			SelectObject(MemoryDC, MemoryBitmap);
+
+			SetTextColor(MemoryDC, RGB(255, 255, 255));
+
+			SetBkMode(MemoryDC, TRANSPARENT);
+
+			//SetBkColor(MemoryDC, RGB(255, 0, 0));
+
+			HFONT Font = GetStockObject(DEFAULT_GUI_FONT);
 			
 			LOGFONT logfont;
 
-			GetObjectW(hFont, sizeof(LOGFONT), &logfont);
-
-			// Now change the logfont.lfHeight member
+			GetObjectW(Font, sizeof(LOGFONT), &logfont);
 
 			HFONT hNewFont = CreateFontIndirectW(&logfont);
 
-			HFONT hOldFont = (HFONT)SelectObject(Context, hNewFont);
+			SelectObject(MemoryDC, hNewFont);
 
 			GetLocalTime(&Time);
 			
@@ -101,12 +124,24 @@ LRESULT CALLBACK ClockWindowProc(_In_ HWND WindowHandle, _In_ UINT Message, _In_
 				L"%02d:%02d:%02d\n%d/%d/%d", 
 				Time.wHour, Time.wMinute, Time.wSecond, Time.wMonth, Time.wDay, Time.wYear);
 
-			DrawTextW(Context, DateTimeString, -1, &ClientRect, DT_NOCLIP | DT_RIGHT);
+			DrawTextW(MemoryDC, DateTimeString, -1, &TextRect, DT_NOCLIP | DT_RIGHT);
 
-			// Always select the old font back into the DC
-			SelectObject(Context, hOldFont);
+			BitBlt(
+				Context, 
+				0, 
+				0, 
+				ClientRect.right - ClientRect.left, 
+				ClientRect.bottom + ClientRect.left, 
+				MemoryDC, 
+				0, 
+				0, 
+				SRCCOPY);
+
+			DeleteObject(MemoryBitmap);
 
 			DeleteObject(hNewFont);
+
+			DeleteDC(MemoryDC);
 
 			EndPaint(WindowHandle, &PaintStruct);
 
@@ -157,6 +192,9 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 		goto Exit;
 	}
+
+	// I used Spy++ to basically trial-and-error my way into figuring out what the real
+	// "taskbar window" was, so we can set that to be the parent of this clock window we're making.
 
 	HWND TaskbarWindowHandle = FindWindowW(L"Shell_SecondaryTrayWnd", NULL);
 
@@ -241,7 +279,7 @@ int WINAPI wWinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, 
 
 		Sleep(100);
 
-		InvalidateRect(ClockWindowHandle, NULL, TRUE);		
+		RedrawWindow(ClockWindowHandle, NULL, NULL, RDW_INVALIDATE | RDW_UPDATENOW);				
 	}
 
 Exit:
