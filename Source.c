@@ -28,7 +28,7 @@ MONITORINFO gMonitorInfo = { sizeof(MONITORINFO) };
 BOOL CALLBACK EnumDisplayProc(HMONITOR hMon, HDC dcMon, RECT* pRcMon, LPARAM Parameter)
 {
 	// Raymond Chen says: "The primary monitor by definition has its upper left corner at (0, 0)."
-	if ((pRcMon->left != 0) & (pRcMon->top != 0))
+	if ((pRcMon->left != 0) | (pRcMon->top != 0))
 	{
 		// We found a secondary monitor!
 		// We need to position our clock window at the bottom right corner of this monitor's taskbar.		
